@@ -22,12 +22,11 @@ To install this library, download the repository and place it in your Arduino `l
 
 To use the library, include it at the top of your Arduino sketch:
 
-```cpp
 #include <MKS_SERVO57.h>
-```
+
 
 Refer to the example provided in the `examples/` directory to get started:
-
+```
 ```cpp
 // Example usage of MKS_SERVO57 library
 #include <MKS_SERVO57.h>
@@ -48,9 +47,8 @@ void loop() {
   Serial.println(stepper.setTargetPosition(1, 0, 1600, 15, 10000));
   delay(2000);
 }
-// ... rest of the example code ...
 ```
-
+```markdown
 ## Example
 
 A basic example is provided in the `examples/Example1_BasicStepper` directory. This example demonstrates the basic functionality of the library, such as setting up the motor, defining the speed and direction, and moving a specified number of steps.
