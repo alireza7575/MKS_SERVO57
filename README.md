@@ -23,10 +23,10 @@ To install this library, download the repository and place it in your Arduino `l
 To use the library, include it at the top of your Arduino sketch:
 
 #include <MKS_SERVO57.h>
-
+```
 
 Refer to the example provided in the `examples/` directory to get started:
-```
+
 ```cpp
 // Example usage of MKS_SERVO57 library
 #include <MKS_SERVO57.h>
