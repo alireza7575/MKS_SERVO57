@@ -11,7 +11,7 @@ bool MKS_SERVO57::ping(byte const &stepperId)
 	// Flush
 	while (port_->read() != -1)
 		;
-	int send = sendMessage(stepperId, instruction::PING);
+	int send = sendMessage(stepperId, instruction::STEPPER_PING);
 	if (send != 4)
 		return -1;
 	return reciveStepperStatus();
@@ -36,7 +36,7 @@ int MKS_SERVO57::reciveStepperStatus()
 	return receivedBytes[0] == 0xFB;
 }
 
-int MKS_SERVO57::getCurrentPosition(byte const &stepperId)
+long MKS_SERVO57::getCurrentPosition(byte const &stepperId)
 {
 	// Flush
 	while (port_->read() != -1)
@@ -47,35 +47,39 @@ int MKS_SERVO57::getCurrentPosition(byte const &stepperId)
 		Serial.println("Failed to send");
 		return -1;
 	}
-	return recieveEncoderPosition();
+	return recieveEncoderPosition(stepperId);
 }
 
-int MKS_SERVO57::recieveEncoderPosition()
+long MKS_SERVO57::recieveEncoderPosition(byte const &stepperId)
 {
 	byte receivedBytes[10] = {0xFB, 0x01, 0x30, 0x00, 0x00, 0x00, 0x00, 0x39, 0x30};
-	size_t rd = port_->readBytes(receivedBytes, 10);
-	int32_t carry = 0;
-	for (int i = 3; i < 7; i++)
-		carry = (carry << 8) | receivedBytes[i];
-	uint16_t value = 0;
-	for (int i = 7; i < 9; i++)
-		value = (value << 8) | receivedBytes[i];
-	return carry * 360 + value * 22 / 1000;
+	size_t bytesRead = port_->readBytes(receivedBytes, 10);
+	if (bytesRead == 10 && receivedBytes[0] == 0xFB && receivedBytes[1] == stepperId)
+	{
+		int32_t carry = (int32_t)receivedBytes[3] << 24 | (int32_t)receivedBytes[4] << 16 | (int32_t)receivedBytes[5] << 8 | (int32_t)receivedBytes[6];
+		uint16_t value = (uint16_t)receivedBytes[7] << 8 | (uint16_t)receivedBytes[8];
+		return (carry * 0x3FFF) + value;
+	}
+	else
+	{
+		Serial.println("Invalid response from motor controller");
+		return false;
+	}
 }
 
-bool MKS_SERVO57::setTargetPosition(byte const &stepperId, byte const &dir, int const &speed, byte const &acc, uint32_t const &pulses)
+bool MKS_SERVO57::setTargetPosition(byte const &stepperId, byte const &direction, int const &speed, byte const &acceleration, uint32_t const &pulses)
 {
 	// Ensure parameters are within their valid ranges
-	if (speed < 0 || speed > 1600 || acc > 32)
+	if (speed < 0 || speed > 1600 || acceleration > 32)
 		return false;
 	byte message[11];
 	message[0] = HEADER;	// Header
 	message[1] = stepperId; // Slave address
-	message[2] = 0xFD;		// Function code for position mode
+	message[2] = instruction::MOVE_SPEED_PULSES;		// Function code for position mode
 	// Speed and direction encoding
-	message[3] = (dir << 7) | ((speed >> 4) & 0x0F);
+	message[3] = (direction << 7) | ((speed >> 4) & 0x0F);
 	message[4] = speed & 0x0F;
-	message[5] = acc; // Acceleration
+	message[5] = acceleration; // Acceleration
 	// Pulses (4 bytes)
 	message[6] = (pulses >> 24) & 0xFF;
 	message[7] = (pulses >> 16) & 0xFF;
